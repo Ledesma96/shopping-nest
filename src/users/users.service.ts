@@ -3,6 +3,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { AuthService } from 'src/auth/auth.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { LoginDto } from './dto/login-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { User, UserDocument } from './schema/user.schma';
 
@@ -23,8 +24,8 @@ export class UsersService {
         return true;
     }
 
-    async getUserById(userId: string): Promise<UserDocument | null> {
-        return this.UserModel.findById(userId);
+    async getUserById(_id: string): Promise<UserDocument | null> {
+        return this.UserModel.findById(_id);
     }
 
     async updateUser(updateUser: UpdateUserDto, userId: string): Promise<boolean> {
@@ -35,23 +36,36 @@ export class UsersService {
         });
     
         if (!user) {
-            throw new NotFoundException('Usuario no encontrado o no actualizado');
+            throw new NotFoundException('user not find or not updated');
         }
     
         return true;
     }
     
-    async deleteUser(token: string): Promise<boolean> {
-        const decodedToken = await this.AuthService.verifyToken(token);
-        const id = decodedToken._id;
-    
+    async deleteUser(id: string): Promise<boolean> {
         const result = await this.UserModel.findByIdAndDelete(id);
     
         if (!result) {
-            throw new NotFoundException('El usuario no fue encontrado o ya fue eliminado');
+            throw new NotFoundException('User not find');
         }
     
         return true;
     }
     
+    async login(data: LoginDto): Promise<{ token: string }> {
+        const user = await this.UserModel.findOne({email: data.email}) as UserDocument;
+            
+        if(!user){
+            throw new NotFoundException('User not find');
+        }
+        const verifyPassword = await this.AuthService.comparePasswords(data.password, user.password);
+            
+        if(!verifyPassword){
+            throw new NotFoundException('Password incorrect')
+        }
+
+        const _id = user._id.toString();
+        const token = await this.AuthService.generateToken({_id, role: user.role})
+        return {token}
+    }
 }

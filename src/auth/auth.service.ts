@@ -20,7 +20,7 @@ export class AuthService {
         return await bcrypt.compare(password, hashedPassword)
     }
 
-    async generateToken(payload: { _id: string}): Promise<string> {
+    async generateToken(payload: { _id: string, role:string}): Promise<string> {
         const token = await this.jwtService.signAsync(payload)
         return token
     }

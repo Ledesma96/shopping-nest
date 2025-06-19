@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
-import { jwtConstants } from 'src/constants/jwt.constants';
+import 'dotenv/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 
@@ -10,9 +10,10 @@ import { AuthService } from './auth.service';
     PassportModule,
     JwtModule.register({
       global: true,
-      secret: jwtConstants.secret,
+      secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '72h' },
-    })
+    }),
+    
   ],
   providers: [AuthService],
   controllers: [AuthController],
