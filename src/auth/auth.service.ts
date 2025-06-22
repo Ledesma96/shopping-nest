@@ -21,8 +21,32 @@ export class AuthService {
     }
 
     async generateToken(payload: { _id: string, role:string}): Promise<string> {
-        const token = await this.jwtService.signAsync(payload)
+        const token = await this.jwtService.signAsync(payload);
         return token
+    }
+
+    async generateTokenVerifyMail(payload: {userId: string, email: string}): Promise<string>{
+        const token = await this.jwtService.signAsync(
+            {
+                payload,
+                purpose: 'verify mail',
+                expiresId: '1h'
+            }
+        )
+        return token
+    }
+
+    async verifyTokenVerifyMail(token: string): Promise<any>{
+        try {
+            const decoded = await this.jwtService.verifyAsync(token);
+            
+            if(decoded.purpose !== 'verify mail'){
+                throw new Error('Token con propósito inválido');
+            }
+            return decoded
+        } catch (error) {
+            throw new Error('Token inválido o expirado');
+        }
     }
 
     async generateTokenResetPassword (userId: string): Promise<string> {

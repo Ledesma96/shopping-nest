@@ -12,9 +12,10 @@ import {
     Put,
     Query,
     Req,
-    UnauthorizedException,
-    UseGuards,
+    Res,
+    UseGuards
 } from '@nestjs/common';
+import { Response } from 'express';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginDto } from './dto/login-user.dto';
@@ -123,21 +124,27 @@ export class UsersController {
     }
 
     @Post('/login')
-    async login(@Body() data: LoginDto): Promise<{ token: string }> {
+    async login(
+        @Body() data: LoginDto,
+        @Res() res: Response
+    ): Promise<void> {
         try {
-            return await this.userService.login(data);
+            const response = await this.userService.login(data, res);
+            res.json(response); // <-- ENVÍA la respuesta y cierra
         } catch (error) {
             console.error('Login Error:', error);
 
             if (error instanceof NotFoundException) {
-                throw new UnauthorizedException(error.message);
+                res.status(401).json({ message: error.message });
+                return;
             }
 
             if (error instanceof BadRequestException) {
-                throw new BadRequestException(error.message);
+                res.status(400).json({ message: error.message });
+                return;
             }
 
-            throw new InternalServerErrorException('Login failed.');
+            res.status(500).json({ message: 'Login failed.' });
         }
     }
 }

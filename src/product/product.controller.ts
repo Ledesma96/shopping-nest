@@ -36,9 +36,9 @@ export class ProductController {
         @Query('page') page: number,
         @Query('sort') sort: number,
         @Query('category') category?: string,
-        @Query('sub_category') sub_category?: string,
         @Query('minPrice') minPrice?: number,
-        @Query('maxPrice') maxPrice?: number
+        @Query('maxPrice') maxPrice?: number,
+        @Query('tags') tags?: string
     ): Promise<any> {
         try {
             return await this.productService.getAllProducts(
@@ -46,10 +46,10 @@ export class ProductController {
                 limit,
                 page,
                 category,
-                sub_category,
                 sort,
                 minPrice,
-                maxPrice
+                maxPrice,
+                tags
             );
         } catch (error) {
             if (error.message === 'Products not found') {
@@ -93,7 +93,10 @@ export class ProductController {
         try {
             const userId = req.user._id;
             const product = await this.productService.getProduct(product_id);
-            if(product.seller != userId){
+            
+            if(product.seller.toString() != userId){
+                console.log('error');
+                
                 throw new ForbiddenException('You can only update your own account.');
             }
             const result = await this.productService.deleteProduct(product_id);

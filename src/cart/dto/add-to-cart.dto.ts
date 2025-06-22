@@ -2,7 +2,7 @@ import { IsMongoId, IsNumber, Min } from 'class-validator';
 
 export class AddToCartDto {
     @IsMongoId()
-    product: string;
+    productId: string;
 
     @IsNumber()
     @Min(1)

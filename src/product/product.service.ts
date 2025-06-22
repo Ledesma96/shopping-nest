@@ -29,10 +29,10 @@ export class ProductService {
         limit: number,
         page: number,
         category?: string,
-        sub_category?: string,
         sort: number = 1,
         minPrice?: number,
-        maxPrice?: number
+        maxPrice?: number,
+        tags?: string
     ): Promise<{
         success: boolean;
         message: string;
@@ -45,16 +45,21 @@ export class ProductService {
         try {
             const filters: any = {};
     
-            if (category) filters.category = category;
-            if (sub_category && sub_category !== "null") filters.sub_category = sub_category;
+            // ✅ Filtrado por categoría (recuerda: tu schema tiene "categories: string[]")
+            if (category) filters.categories = { $in: [category] };
+            
+            if(tags) filters.tags = {$in: [tags]}
     
+            // ✅ Filtro por precio
             if (minPrice !== undefined || maxPrice !== undefined) {
                 filters.price = {};
                 if (minPrice !== undefined) filters.price.$gte = minPrice;
                 if (maxPrice !== undefined) filters.price.$lte = maxPrice;
             }
     
-            if (name) filters.name = name;
+            // ✅ Filtrado por nombre con regex (búsqueda parcial, case insensitive)
+            if (name) filters.title = { $regex: name, $options: 'i' };
+
     
             const result = await this.productModel.paginate(filters, {
                 page,
@@ -70,16 +75,17 @@ export class ProductService {
             return {
                 success: true,
                 message: 'Products obtained successfully',
-                products: result.docs,     // <-- solo documentos en un array
+                products: result.docs,
                 totalDocs: result.totalDocs,
                 totalPages: result.totalPages,
                 limit: result.limit,
                 page: result.page,
             };
         } catch (error) {
-            throw error
+            throw error;
         }
     }
+    
 
     async updateProduct(_id: string, data: UpdateProductDto): Promise<ProductDocument> {
         const product = await this.productModel.findOneAndUpdate({ _id }, data, { new: true });

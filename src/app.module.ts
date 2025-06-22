@@ -5,6 +5,8 @@ import { AuthModule } from './auth/auth.module';
 import { ProductModule } from './product/product.module';
 import { ReviewModule } from './review/review.module';
 import { UsersModule } from './users/users.module';
+import { CartModule } from './cart/cart.module';
+import { MailerModule } from './mailer/mailer.module';
 
 @Module({
   imports: [
@@ -13,6 +15,8 @@ import { UsersModule } from './users/users.module';
     AuthModule,
     ProductModule,
     ReviewModule,
+    CartModule,
+    MailerModule,
   ],
   controllers: [],
   providers: [],

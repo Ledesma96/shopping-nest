@@ -1,7 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { Response } from 'express';
 import { Model } from 'mongoose';
 import { AuthService } from 'src/auth/auth.service';
+import { MailerService } from 'src/mailer/mailer.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginDto } from './dto/login-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -12,6 +14,7 @@ export class UsersService {
     constructor(
         private readonly AuthService: AuthService,
         @InjectModel(User.name) private readonly UserModel: Model<User>,
+        private readonly mailerService: MailerService
     ){}
 
     async createUser(createUserDto: CreateUserDto): Promise<boolean> {
@@ -21,6 +24,11 @@ export class UsersService {
             password: hashedPassword,
         });
         await user.save();
+        const email = user.email;
+        const userId = user._id
+        const url = await this.mailerService.sendVerifyMail(email, userId.toString());
+        console.log(url);
+        
         return true;
     }
 
@@ -52,7 +60,7 @@ export class UsersService {
         return true;
     }
     
-    async login(data: LoginDto): Promise<{ token: string }> {
+    async login(data: LoginDto,  res: Response): Promise<{ message: string }> {
         const user = await this.UserModel.findOne({email: data.email}) as UserDocument;
             
         if(!user){
@@ -66,6 +74,14 @@ export class UsersService {
 
         const _id = user._id.toString();
         const token = await this.AuthService.generateToken({_id, role: user.role})
-        return {token}
+        res.cookie('token', token, {
+            httpOnly: true,                            // Evita acceso por JS del cliente
+            secure: process.env.NODE_ENV === 'production', // Solo HTTPS en producción
+            sameSite: 'lax',                           // Protege contra CSRF básico
+            maxAge: 1000 * 60 * 60 * 24 * 7,           // 7 días
+        });
+
+        return { message: 'Login successful' };
     }
+
 }

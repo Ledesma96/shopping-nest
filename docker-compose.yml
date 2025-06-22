@@ -9,6 +9,15 @@ services:
       - "27017:27017"
     volumes:
       - mongo-data:/data/db
-
+  backend:
+    build: .
+    container_name: nest-backend
+    restart: always
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mongo
+    environment:
+      - MONGO_URI=mongodb://localhost:27017/shopping
 volumes:
   mongo-data:

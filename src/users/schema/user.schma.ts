@@ -33,19 +33,8 @@ export class User extends Document {
     @Prop({ default: true })
     isActive: boolean;
 
-    @Prop({
-        type: [
-            {
-            product: { type: Types.ObjectId, ref: 'Product', required: true },
-            quantity: { type: Number, default: 1 },
-            },
-        ],
-        default: [],
-    })
-    cart: {
-        product: Types.ObjectId;
-        quantity: number;
-    }[];
+    @Prop({ type: Types.ObjectId, ref: 'Cart'})
+    cart: Types.ObjectId;
 
     @Prop({ default: [] })
     permissions: string[];
