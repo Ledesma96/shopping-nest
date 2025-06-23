@@ -5,6 +5,8 @@ import {
     Delete,
     ForbiddenException,
     Get,
+    HttpException,
+    HttpStatus,
     InternalServerErrorException,
     NotFoundException,
     Param,
@@ -124,27 +126,51 @@ export class UsersController {
     }
 
     @Post('/login')
-    async login(
-        @Body() data: LoginDto,
-        @Res() res: Response
-    ): Promise<void> {
+    async login(@Body() data: LoginDto, @Res() res: Response): Promise<void> {
         try {
-            const response = await this.userService.login(data, res);
-            res.json(response); // <-- ENVÍA la respuesta y cierra
+            const { token, message } = await this.userService.login(data);
+
+            res.cookie('token', token, {
+            httpOnly: true,
+            secure: false, // true en prod con HTTPS
+            sameSite: 'lax',
+            maxAge: 1000 * 60 * 60 * 24 * 7,
+            });
+
+            res.status(200).json({ message });
         } catch (error) {
             console.error('Login Error:', error);
 
             if (error instanceof NotFoundException) {
-                res.status(401).json({ message: error.message });
-                return;
+            res.status(401).json({ message: error.message });
+            return;
             }
 
             if (error instanceof BadRequestException) {
-                res.status(400).json({ message: error.message });
-                return;
+            res.status(400).json({ message: error.message });
+            return;
             }
 
             res.status(500).json({ message: 'Login failed.' });
         }
     }
+
+    @Post('add-to-favorites')
+    @UseGuards(JwtAuthGuard)
+    async toggleFavorite(
+    @Query('productId') productId: string,
+    @Req() req: any, // Mejor tiparlo si puedes
+    ): Promise<{ added: boolean }> {
+        try {
+            const userId = req.user._id;
+            const added = await this.userService.toggleFavorite(productId, userId);
+            return added ;
+        } catch (error) {
+            if (error instanceof NotFoundException) {
+            throw new NotFoundException(error.message);
+            }
+            throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
 }

@@ -24,6 +24,9 @@ export class User extends Document {
     @Prop({ enum: UserRole, default: UserRole.USER })
     role: UserRole;
 
+    @Prop({ type: [{ type: Types.ObjectId, ref: 'Product' }], required: true })
+    favorites: Types.ObjectId[];
+
     @Prop()
     avatarUrl?: string;
 

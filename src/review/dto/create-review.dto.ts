@@ -1,9 +1,12 @@
-import { IsMongoId, IsNotEmpty, IsNumber, IsString, Max, Min } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString, Max, Min } from 'class-validator';
 
 export class CreateReviewDto {
-    @IsMongoId()
-    product: string; // ID del producto que se reseña
+    @IsString()
+    product: string;
 
+    @IsString()
+    userId: string;
+    
     @IsString()
     @IsNotEmpty()
     comment: string;
