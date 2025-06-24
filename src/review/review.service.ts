@@ -17,8 +17,8 @@ export class ReviewService {
         return true
     }
 
-    async getReviewProduct(productId: string): Promise<ReviewDocument[]>{
-        const reviews = await this.ReviewModel.find({productId})
+    async getReviewsProduct(productId: string): Promise<ReviewDocument[]>{
+        const reviews = await this.ReviewModel.find({product: productId})
         if(!reviews || reviews.length <= 0){
             throw new NotFoundException('Reviews not find');
         }
@@ -27,7 +27,8 @@ export class ReviewService {
 
     async updateReview(data: UpdateReviewDto): Promise<ReviewDocument>{
         const review = await this.ReviewModel.findById(data.reviewId);
-        if(review._id.toString() != data.userId){
+        
+        if(review.user.toString() != data.userId){
             throw new ForbiddenException('Access denied');
         }
         const result = await this.ReviewModel.findByIdAndUpdate(data.reviewId, {comment: data.comment}, {new: true})

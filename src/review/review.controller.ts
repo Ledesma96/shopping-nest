@@ -17,18 +17,17 @@ export class ReviewController {
     @Post('create-review')
     @UseGuards(JwtAuthGuard)
     async createReview(
-        @Body() data: CreateReviewDto,
+        @Body() data: Omit<CreateReviewDto, 'userId'>,
         @Req() req: any
     ): Promise<boolean> {
-        const userId = req.user._id;
-        return this.reviewService.createReview({ ...data, userId });
+        return this.reviewService.createReview({ ...data, user: req.user._id });
     }
 
     @Get()
-    async getReviewProduct(
+    async getReviewsProduct(
         @Query('productId') productId: string
     ): Promise<ReviewDocument[]> {
-        return this.reviewService.getReviewProduct(productId);
+        return this.reviewService.getReviewsProduct(productId);
     }
 
     @Put('update-review')
@@ -43,7 +42,7 @@ export class ReviewController {
         });
     }
 
-    @Delete()
+    @Delete('delete-review')
     @UseGuards(JwtAuthGuard)
     async deleteReview(
         @Query('reviewId') reviewId: string,

@@ -6,85 +6,67 @@ import { MailerService } from 'src/mailer/mailer.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginDto } from './dto/login-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { User, UserDocument } from './schema/user.schma';
+import { User, UserDocument } from './schema/user.schema';
 
 @Injectable()
 export class UsersService {
     constructor(
-        private readonly AuthService: AuthService,
-        @InjectModel(User.name) private readonly UserModel: Model<User>,
-        private readonly mailerService: MailerService
-    ){}
+        private readonly authService: AuthService,
+        @InjectModel(User.name) private readonly userModel: Model<User>,
+        private readonly mailerService: MailerService,
+    ) {}
 
     async createUser(createUserDto: CreateUserDto): Promise<boolean> {
-        const hashedPassword = await this.AuthService.hashPassword(createUserDto.password);
-        const user = new this.UserModel({
-            ...createUserDto,
-            password: hashedPassword,
-        });
+        const hashedPassword = await this.authService.hashPassword(createUserDto.password);
+        const user = new this.userModel({ ...createUserDto, password: hashedPassword });
         await user.save();
-        const email = user.email;
-        const userId = user._id
-        const url = await this.mailerService.sendVerifyMail(email, userId.toString());
-        console.log(url);
-        
+
+        await this.mailerService.sendVerifyMail(user.email, user._id.toString());
         return true;
     }
 
-    async getUserById(_id: string): Promise<UserDocument | null> {
-        return this.UserModel.findById(_id);
+    async getUserById(id: string): Promise<UserDocument> {
+        const user = await this.userModel.findById(id);
+        if (!user) throw new NotFoundException('User not found');
+        return user;
     }
 
-    async updateUser(updateUser: UpdateUserDto, userId: string): Promise<boolean> {
-    
-        const user = await this.UserModel.findByIdAndUpdate(userId, updateUser, {
+    async updateUser(userId: string, updateUserDto: UpdateUserDto): Promise<boolean> {
+        const user = await this.userModel.findByIdAndUpdate(userId, updateUserDto, {
             new: true,
             runValidators: true,
         });
-    
-        if (!user) {
-            throw new NotFoundException('user not find or not updated');
-        }
-    
+
+        if (!user) throw new NotFoundException('User not found or not updated');
         return true;
     }
-    
-    async deleteUser(id: string): Promise<boolean> {
-        const result = await this.UserModel.findByIdAndDelete(id);
-    
-        if (!result) {
-            throw new NotFoundException('User not find');
-        }
-    
+
+    async deleteUser(userId: string): Promise<boolean> {
+        const result = await this.userModel.findByIdAndDelete(userId);
+        if (!result) throw new NotFoundException('User not found');
         return true;
     }
-    
-    // user.service.ts
-    async login(data: LoginDto): Promise<{ token: string, message: string }> {
-        const user = await this.UserModel.findOne({ email: data.email }) as UserDocument;
-    
+
+    async login(loginDto: LoginDto): Promise<{ token: string; message: string }> {
+        const user = await this.userModel.findOne({ email: loginDto.email });
         if (!user) throw new NotFoundException('User not found');
-    
-        const verifyPassword = await this.AuthService.comparePasswords(data.password, user.password);
-    
-        if (!verifyPassword) throw new NotFoundException('Password incorrect');
-    
-        const _id = user._id.toString();
-        const token = await this.AuthService.generateToken({ _id, role: user.role });
-    
+
+        const isPasswordValid = await this.authService.comparePasswords(loginDto.password, user.password);
+        if (!isPasswordValid) throw new NotFoundException('Password incorrect');
+
+        const token = await this.authService.generateToken({ _id: user._id.toString(), role: user.role });
         return { token, message: 'Login successful' };
     }
 
     async toggleFavorite(productId: string, userId: string): Promise<{ added: boolean }> {
-        const user = await this.UserModel.findById(userId);
+        const user = await this.userModel.findById(userId);
         if (!user) throw new NotFoundException('User not found');
-        
+
         const productObjectId = new Types.ObjectId(productId);
-        
-        const index = user.favorites.findIndex(fav => fav.equals(productObjectId));
-        
-        if (index !== -1) {
-            user.favorites.splice(index, 1);
+        const isFavorite = user.favorites.some(fav => fav.equals(productObjectId));
+
+        if (isFavorite) {
+            user.favorites = user.favorites.filter(fav => !fav.equals(productObjectId));
             await user.save();
             return { added: false };
         } else {

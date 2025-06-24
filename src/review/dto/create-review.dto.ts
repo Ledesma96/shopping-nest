@@ -5,7 +5,7 @@ export class CreateReviewDto {
     product: string;
 
     @IsString()
-    userId: string;
+    user: string;
     
     @IsString()
     @IsNotEmpty()

@@ -1,29 +1,38 @@
-import { Body, ConflictException, Controller, Delete, ForbiddenException, Get, HttpException, HttpStatus, InternalServerErrorException, NotFoundException, Post, Put, Query, Req, UseGuards } from '@nestjs/common';
+import {
+    Body,
+    ConflictException,
+    Controller,
+    Delete,
+    ForbiddenException,
+    Get,
+    HttpException,
+    HttpStatus,
+    InternalServerErrorException,
+    Post,
+    Put,
+    Query,
+    Req,
+    UseGuards
+} from '@nestjs/common';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CreateProductDto } from './dto/create-producto.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductService } from './product.service';
-import { ProductDocument } from './schema/product.schema';
 
 @Controller('product')
 export class ProductController {
-    constructor(
-        private readonly productService: ProductService
-    ){}
+    constructor(private readonly productService: ProductService) {}
 
     @UseGuards(JwtAuthGuard)
     @Post()
-    async createProduct(
-        @Req() req,
-        @Body() newProduct: CreateProductDto
-    ) {
+    async createProduct(@Req() req, @Body() newProduct: CreateProductDto) {
         try {
             const sellerId = req.user._id;
             const product = await this.productService.createProduct(newProduct, sellerId);
             return { success: true, message: 'Product created successfully', product };
         } catch (error) {
             if (error.code === 11000) {
-                throw new ConflictException('Product with this name already exists for this user.');
+            throw new ConflictException('Product with this name already exists for this user.');
             }
             throw new InternalServerErrorException('Failed to create product.');
         }
@@ -32,83 +41,58 @@ export class ProductController {
     @Get('/get-all-products')
     async getAllProducts(
         @Query('name') name: string,
-        @Query('limit') limit: number,
-        @Query('page') page: number,
-        @Query('sort') sort: number,
+        @Query('limit') limit = 10,
+        @Query('page') page = 1,
+        @Query('sort') sort = 1,
         @Query('category') category?: string,
         @Query('minPrice') minPrice?: number,
         @Query('maxPrice') maxPrice?: number,
-        @Query('tags') tags?: string
-    ): Promise<any> {
+        @Query('tags') tags?: string,
+    ) {
         try {
             return await this.productService.getAllProducts(
-                name,
-                limit,
-                page,
-                category,
-                sort,
-                minPrice,
-                maxPrice,
-                tags
+            name,
+            +limit,
+            +page,
+            category,
+            +sort,
+            minPrice ? +minPrice : undefined,
+            maxPrice ? +maxPrice : undefined,
+            tags,
             );
         } catch (error) {
-            if (error.message === 'Products not found') {
-                throw new NotFoundException('Products not found');
-            }
-            throw new HttpException(
-                'internal server error',
-                HttpStatus.INTERNAL_SERVER_ERROR
-            )
+            throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
     @Put('/update-product')
     @UseGuards(JwtAuthGuard)
     async updateProduct(
-        @Body()data: UpdateProductDto,
         @Req() req,
-        @Query('product_id') product_id: string
-    ) : Promise<ProductDocument>
-    {
-        try {
-            const userId = req.user._id;
-            const product = await this.productService.getProduct(product_id)
-            if(product.seller != userId){
-                throw new ForbiddenException('You can only update your own account.');
-            }
-            const updateProduct = await this.productService.updateProduct(product_id, data);
-            return updateProduct
-        } catch (error) {
-            
+        @Query('product_id') productId: string,
+        @Body() data: UpdateProductDto,
+        ) {
+        const userId = req.user._id;
+        const product = await this.productService.getProductById(productId);
+    
+        if (product.seller.toString() !== userId.toString()) {
+            throw new ForbiddenException('You can only update your own products.');
         }
+    
+        return await this.productService.updateProduct(productId, data);
     }
 
     @Delete('/delete-product')
     @UseGuards(JwtAuthGuard)
-    async deleteProduct(
-        @Req() req,
-        @Query('product_id') product_id: string
-    ): Promise<boolean>
-    {
-        try {
-            const userId = req.user._id;
-            const product = await this.productService.getProduct(product_id);
-            
-            if(product.seller.toString() != userId){
-                console.log('error');
-                
-                throw new ForbiddenException('You can only update your own account.');
-            }
-            const result = await this.productService.deleteProduct(product_id);
-            return result
-        } catch (error) {
-            if (error.message === 'Product not found') {
-                throw new NotFoundException('Products not found');
-            }
-            throw new HttpException(
-                'internal server error',
-                HttpStatus.INTERNAL_SERVER_ERROR
-            )
+    async deleteProduct(@Req() req, @Query('product_id') productId: string): Promise<{ success: boolean; message: string }> {
+        const userId = req.user._id;
+        const product = await this.productService.getProductById(productId);
+    
+        if (product.seller.toString() !== userId.toString()) {
+            throw new ForbiddenException('You can only delete your own products.');
         }
+
+        await this.productService.deleteProduct(productId);
+        return { success: true, message: 'Product deleted successfully' };
     }
 }

@@ -5,63 +5,32 @@ import { AddToCartDto } from './dto/add-to-cart.dto';
 import { CartDocument } from './schema/cart.schema';
 
 @Controller('cart')
+@UseGuards(JwtAuthGuard)
 export class CartController {
-    constructor(
-        private readonly cartService: CartService
-    ){}
+    constructor(private readonly cartService: CartService) {}
 
     @Get()
-    @UseGuards(JwtAuthGuard)
-    async getAllCartsToUser(
-        @Req() req
-    ): Promise<CartDocument[]>
-    {
-        try {
-            const userId = req.user._id;
-            const carts = this.cartService.getAllCartsToUser(userId)
-            return carts
-        } catch (error) {
-            if(error.message == 'No carts found for this user'){
-                throw new HttpException(
-                    'No carts found for this user',
-                    HttpStatus.NOT_FOUND
-                )
-            }
-            throw new HttpException('Error updating cart', HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    async getAllCartsToUser(@Req() req): Promise<CartDocument[]> {
+        return await this.cartService.getAllCartsToUser(req.user._id);
     }
 
-    @Post('/add-or-update-to-cart')
-    @UseGuards(JwtAuthGuard)
+    @Post('add-or-update')
     async addOrUpdateCart(
-        @Body() product: AddToCartDto,
-        @Req() req
+        @Body() productDto: AddToCartDto,
+        @Req() req,
     ): Promise<CartDocument> {
         try {
-            const userId = req.user._id;
-            return await this.cartService.addOrUpdateCart(product, userId);
+            return await this.cartService.addOrUpdateCart(productDto, req.user._id);
         } catch (error) {
-            console.error(error); // Puedes registrar el error
             throw new HttpException('Error updating cart', HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 
-    @Delete('/delete-cart/:cartId')
-    @UseGuards(JwtAuthGuard)
+    @Delete(':cartId')
     async deleteCart(
         @Param('cartId') cartId: string,
-        @Req() req
-    ): Promise<boolean>
-    {
-        try {
-            const userId = req.user._id
-            const deletedCart = await this.cartService.deleteCart(userId, cartId)
-            return deletedCart
-        } catch (error) {
-            throw new HttpException(
-                'Internal server erro',
-                HttpStatus.INTERNAL_SERVER_ERROR
-            )
-        }
+        @Req() req,
+    ): Promise<boolean> {
+        return await this.cartService.deleteCart(req.user._id, cartId);
     }
 }
