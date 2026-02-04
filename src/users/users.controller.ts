@@ -20,10 +20,10 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginDto } from './dto/login-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { UserDocument } from './schema/user.schema';
+import { UserDto } from './dto/user.dto';
 import { UsersService } from './users.service';
 
-@Controller('users')
+@Controller('api/v1/users')
 export class UsersController {
     constructor(private readonly usersService: UsersService) {}
 
@@ -40,9 +40,30 @@ export class UsersController {
         }
     }
 
-    @Get()
-    async getUserById(@Query('id') id: string): Promise<UserDocument> {
+    @Get('/get-favorites')
+    @UseGuards(JwtAuthGuard)
+    async getFavorites(@Req() req): Promise <{favorites: any}>{
+        console.log(req.user._id, 'controller');
+        
+        const favorites = await this.usersService.getFavorites(req.user._id)
+        return favorites
+        return
+    }
+
+    @Get('/me')
+    @UseGuards(JwtAuthGuard)
+    async getUserById(
+        @Req() req
+    ): Promise<UserDto> {
+        const id = req.user._id
         return await this.usersService.getUserById(id);
+    }
+
+    @Get('/:id')
+    async getUserProfile(@Param('id') id: string): Promise<UserDto> {
+        const user = await this.usersService.getUserById(id);
+        if (!user) throw new NotFoundException('User not found');
+        return user;
     }
 
     @Put('/update-user/:id')
@@ -93,9 +114,23 @@ export class UsersController {
         }
     }
 
+    @Post('/logout')
+    logout(@Res() res: Response): void {
+        res.clearCookie('token', {
+            httpOnly: true,
+            secure: false,
+            sameSite: 'lax',
+        });
+
+        res.status(200).json({ message: 'Logout successful', success: true });
+    }
+
+
     @Post('/add-to-favorites')
     @UseGuards(JwtAuthGuard)
     async toggleFavorite(@Query('productId') productId: string, @Req() req): Promise<{ added: boolean }> {
         return await this.usersService.toggleFavorite(productId, req.user._id);
     }
+
+    
 }

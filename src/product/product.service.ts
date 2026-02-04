@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import mongoose, { PaginateModel } from 'mongoose';
+import { DmsService } from 'src/dms/dms.service';
 import { CreateProductDto } from './dto/create-producto.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { Product, ProductDocument } from './schema/product.schema';
@@ -9,13 +10,23 @@ import { Product, ProductDocument } from './schema/product.schema';
 export class ProductService {
     constructor(
         @InjectModel(Product.name) private readonly productModel: PaginateModel<Product>,
+        private readonly dmsService: DmsService
     ) {}
 
-    async createProduct(newProduct: CreateProductDto, sellerId: string): Promise<Product> {
+    async createProduct(newProduct: CreateProductDto, sellerId: string, files: { [fieldname: string]: Express.Multer.File[] }): Promise<Product> {
+        
+        const images = [];
+        const upload = await this.dmsService.uploadFiles({files, isPublic: true});
+        
+        upload.forEach(u => {
+            images.push(u.url);
+        })
         const product = new this.productModel({
         ...newProduct,
         seller: new mongoose.Types.ObjectId(sellerId),
+        images
         });
+        
         return product.save();
     }
 
@@ -63,6 +74,7 @@ export class ProductService {
         sort: { price: sort },
         });
 
+
         return {
         success: true,
         message: 'Products obtained successfully',
@@ -84,5 +96,11 @@ export class ProductService {
         const result = await this.productModel.findByIdAndDelete(productId);
         if (!result) throw new NotFoundException('Product not found');
         return true;
+    }
+
+    async findByName(query: string) {
+        return this.productModel.find({
+            title: { $regex: query, $options: 'i' },
+        }).exec();
     }
 }

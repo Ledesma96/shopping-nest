@@ -1,11 +1,12 @@
-import { IsNotEmpty, IsNumber, IsString, Max, Min } from 'class-validator';
+import { IsMongoId, IsNotEmpty, IsNumber, IsString, Max, Min } from 'class-validator';
+import { Types } from 'mongoose';
 
 export class CreateReviewDto {
-    @IsString()
-    product: string;
+    @IsMongoId({ message: 'El user debe ser un ObjectId válido o string que represente uno' })
+    product:  string | Types.ObjectId;
 
-    @IsString()
-    user: string;
+    @IsMongoId({ message: 'El user debe ser un ObjectId válido o string que represente uno' })
+    user: string | Types.ObjectId;
     
     @IsString()
     @IsNotEmpty()

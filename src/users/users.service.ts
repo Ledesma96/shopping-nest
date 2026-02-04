@@ -1,12 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model, Types } from 'mongoose';
+import { plainToInstance } from 'class-transformer';
+import { Model, ObjectId, Types } from 'mongoose';
 import { AuthService } from 'src/auth/auth.service';
 import { MailerService } from 'src/mailer/mailer.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginDto } from './dto/login-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { User, UserDocument } from './schema/user.schema';
+import { UserDto } from './dto/user.dto';
+import { User } from './schema/user.schema';
 
 @Injectable()
 export class UsersService {
@@ -21,15 +23,33 @@ export class UsersService {
         const user = new this.userModel({ ...createUserDto, password: hashedPassword });
         await user.save();
 
-        await this.mailerService.sendVerifyMail(user.email, user._id.toString());
+        await this.mailerService.sendVerifyMail(user.email.toLowerCase(), user._id.toString());
         return true;
     }
 
-    async getUserById(id: string): Promise<UserDocument> {
-        const user = await this.userModel.findById(id);
-        if (!user) throw new NotFoundException('User not found');
-        return user;
+    async getFavorites(id: ObjectId): Promise<{ favorites: any }> {
+        console.log(id, 'service');
+        
+        const user = await this.userModel
+            .findById(id)
+            .select('favorites')
+            .populate('favorites')
+            .lean()
+
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+
+        return { favorites: user.favorites };
     }
+
+    async getUserById(id: string): Promise<UserDto> {
+        const user = await this.userModel.findById(id).lean();
+        if (!user) throw new NotFoundException('User not found');
+    
+        return plainToInstance(UserDto, user, { excludeExtraneousValues: true });
+    }
+    
 
     async updateUser(userId: string, updateUserDto: UpdateUserDto): Promise<boolean> {
         const user = await this.userModel.findByIdAndUpdate(userId, updateUserDto, {
@@ -48,13 +68,14 @@ export class UsersService {
     }
 
     async login(loginDto: LoginDto): Promise<{ token: string; message: string }> {
-        const user = await this.userModel.findOne({ email: loginDto.email });
+        const user = await this.userModel.findOne({ email: loginDto.email.toLowerCase() });
         if (!user) throw new NotFoundException('User not found');
 
         const isPasswordValid = await this.authService.comparePasswords(loginDto.password, user.password);
         if (!isPasswordValid) throw new NotFoundException('Password incorrect');
 
         const token = await this.authService.generateToken({ _id: user._id.toString(), role: user.role });
+
         return { token, message: 'Login successful' };
     }
 

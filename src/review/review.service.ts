@@ -1,6 +1,6 @@
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import mongoose, { Model } from 'mongoose';
 import { CreateReviewDto } from './dto/create-review.dto';
 import { DeleteReviewDto } from './dto/delete-review.dto';
 import { UpdateReviewDto } from './dto/update-review.dto';
@@ -13,12 +13,19 @@ export class ReviewService {
     ){}
 
     async createReview(data: CreateReviewDto): Promise<boolean>{
+        
+        data = {
+            ...data,
+            user: new mongoose.Types.ObjectId(data.user),
+            product: new mongoose.Types.ObjectId(data.product)
+        }
         const review = await this.ReviewModel.create(data)
         return true
     }
 
     async getReviewsProduct(productId: string): Promise<ReviewDocument[]>{
-        const reviews = await this.ReviewModel.find({product: productId})
+        const id = new mongoose.Types.ObjectId(productId)
+        const reviews = await this.ReviewModel.find({product: id})
         if(!reviews || reviews.length <= 0){
             throw new NotFoundException('Reviews not find');
         }

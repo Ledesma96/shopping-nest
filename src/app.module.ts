@@ -7,6 +7,8 @@ import { ReviewModule } from './review/review.module';
 import { UsersModule } from './users/users.module';
 import { CartModule } from './cart/cart.module';
 import { MailerModule } from './mailer/mailer.module';
+import { DmsModule } from './dms/dms.module';
+import { GatewayModule } from './socket/gateway.module';
 
 @Module({
   imports: [
@@ -17,6 +19,8 @@ import { MailerModule } from './mailer/mailer.module';
     ReviewModule,
     CartModule,
     MailerModule,
+    DmsModule,
+    GatewayModule,
   ],
   controllers: [],
   providers: [],

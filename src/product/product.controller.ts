@@ -8,28 +8,40 @@ import {
     HttpException,
     HttpStatus,
     InternalServerErrorException,
+    Param,
     Post,
     Put,
     Query,
     Req,
-    UseGuards
+    UploadedFiles,
+    UseGuards,
+    UseInterceptors
 } from '@nestjs/common';
+import { FileFieldsInterceptor } from '@nestjs/platform-express';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { CreateProductDto } from './dto/create-producto.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductService } from './product.service';
+import { ProductDocument } from './schema/product.schema';
 
-@Controller('product')
+@Controller('api/v1/products')
 export class ProductController {
     constructor(private readonly productService: ProductService) {}
 
     @UseGuards(JwtAuthGuard)
-    @Post()
-    async createProduct(@Req() req, @Body() newProduct: CreateProductDto) {
+    @UseInterceptors(FileFieldsInterceptor([
+        { name: 'images', maxCount: 10 }
+    ]))
+    @Post('/add-product')
+    async createProduct(
+        @Req() req,
+        @Body('product') product: string,
+        @UploadedFiles() files: { [fieldname: string]: Express.Multer.File[] }
+    ) {
         try {
             const sellerId = req.user._id;
-            const product = await this.productService.createProduct(newProduct, sellerId);
-            return { success: true, message: 'Product created successfully', product };
+            const parsedProduct = JSON.parse(product);
+            const newProduct = await this.productService.createProduct(parsedProduct, sellerId, files);
+            return { success: true, message: 'Product created successfully', newProduct };
         } catch (error) {
             if (error.code === 11000) {
             throw new ConflictException('Product with this name already exists for this user.');
@@ -39,18 +51,18 @@ export class ProductController {
     }
 
     @Get('/get-all-products')
-    async getAllProducts(
-        @Query('name') name: string,
-        @Query('limit') limit = 10,
-        @Query('page') page = 1,
-        @Query('sort') sort = 1,
-        @Query('category') category?: string,
-        @Query('minPrice') minPrice?: number,
-        @Query('maxPrice') maxPrice?: number,
-        @Query('tags') tags?: string,
-    ) {
-        try {
-            return await this.productService.getAllProducts(
+async getAllProducts(
+    @Query('name') name?: string,
+    @Query('limit') limit: string = '10',
+    @Query('page') page: string = '1',
+    @Query('sort') sort: string = '1',
+    @Query('category') category?: string,
+    @Query('minPrice') minPrice?: string,
+    @Query('maxPrice') maxPrice?: string,
+    @Query('tags') tags?: string,
+) {
+    try {
+        return await this.productService.getAllProducts(
             name,
             +limit,
             +page,
@@ -59,11 +71,12 @@ export class ProductController {
             minPrice ? +minPrice : undefined,
             maxPrice ? +maxPrice : undefined,
             tags,
-            );
-        } catch (error) {
-            throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+        );
+    } catch (error) {
+        throw new HttpException('Internal server error', HttpStatus.INTERNAL_SERVER_ERROR);
     }
+}
+
 
     @Put('/update-product')
     @UseGuards(JwtAuthGuard)
@@ -94,5 +107,13 @@ export class ProductController {
 
         await this.productService.deleteProduct(productId);
         return { success: true, message: 'Product deleted successfully' };
+    }
+
+    @Get('/get-product-by-id/:id')
+    async getProductById(
+        @Param('id') id: string
+    ): Promise<{success: boolean, message: string, product: ProductDocument}>{
+        const result = await this.productService.getProductById(id);
+        return {success: true, message: 'Get product successfully', product: result}
     }
 }

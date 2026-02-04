@@ -8,13 +8,13 @@ import { UpdateReviewDto } from './dto/update-review.dto';
 import { ReviewService } from './review.service';
 import { ReviewDocument } from './schema/review.schema';
 
-@Controller('review')
+@Controller('api/v1/review')
 export class ReviewController {
     constructor(
         private readonly reviewService: ReviewService
     ) {}
 
-    @Post('create-review')
+    @Post('/create-review')
     @UseGuards(JwtAuthGuard)
     async createReview(
         @Body() data: Omit<CreateReviewDto, 'userId'>,
@@ -23,14 +23,14 @@ export class ReviewController {
         return this.reviewService.createReview({ ...data, user: req.user._id });
     }
 
-    @Get()
+    @Get('/get-reviews')
     async getReviewsProduct(
         @Query('productId') productId: string
     ): Promise<ReviewDocument[]> {
         return this.reviewService.getReviewsProduct(productId);
     }
 
-    @Put('update-review')
+    @Put('/update-review')
     @UseGuards(JwtAuthGuard)
     async updateReview(
         @Body() data: Omit<UpdateReviewDto, 'userId'>,
@@ -42,7 +42,7 @@ export class ReviewController {
         });
     }
 
-    @Delete('delete-review')
+    @Delete('/delete-review')
     @UseGuards(JwtAuthGuard)
     async deleteReview(
         @Query('reviewId') reviewId: string,
