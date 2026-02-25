@@ -9,6 +9,7 @@ import { CartModule } from './cart/cart.module';
 import { MailerModule } from './mailer/mailer.module';
 import { DmsModule } from './dms/dms.module';
 import { GatewayModule } from './socket/gateway.module';
+import { AddressModule } from './address/address.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { GatewayModule } from './socket/gateway.module';
     MailerModule,
     DmsModule,
     GatewayModule,
+    AddressModule,
   ],
   controllers: [],
   providers: [],

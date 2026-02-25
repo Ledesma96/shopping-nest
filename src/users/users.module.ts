@@ -6,6 +6,7 @@ import { MailerModule } from 'src/mailer/mailer.module';
 import { User, UserSchema } from './schema/user.schema';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
+import { AddressModule } from 'src/address/address.module';
 
 @Module({
   imports: [
@@ -16,7 +17,8 @@ import { UsersService } from './users.service';
       }
     ]),
     AuthModule,
-    MailerModule
+    MailerModule,
+    AddressModule
   ],
   providers: [UsersService, JwtStrategy],
   controllers: [UsersController],

@@ -18,6 +18,18 @@ export class User extends Document {
     @Prop({ required: true, unique: true, lowercase: true })
     email: string;
 
+    @Prop({unique: true, type: Number, default: null})
+    phone: number
+
+    @Prop({
+        type: [
+            { type: Types.ObjectId, ref: 'Address' }
+        ],
+        default: []
+    })
+    address: Types.ObjectId[];
+
+
     @Prop({ required: true })
     password: string;
 

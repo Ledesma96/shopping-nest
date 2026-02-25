@@ -1,4 +1,6 @@
-import { Exclude, Expose } from 'class-transformer';
+import { Exclude, Expose, Type} from 'class-transformer';
+import { AddressDto } from './address-user.dto';
+
 
 export class UserDto {
     @Expose()
@@ -8,7 +10,14 @@ export class UserDto {
     email: string;
 
     @Expose()
-    favorites: string[]; // o Types.ObjectId[] si querés tipar MongoId
+    phone: number;
+
+    @Expose()
+    @Type(() => AddressDto) 
+    address: AddressDto[];
+
+    @Expose()
+    favorites: string[];
 
     @Expose()
     avatarUrl?: string;
@@ -20,7 +29,7 @@ export class UserDto {
     isActive: boolean;
 
     @Expose()
-    cart: string; // o Types.ObjectId
+    cart: string;
 
     @Expose()
     permissions: string[];
@@ -28,7 +37,7 @@ export class UserDto {
     @Expose()
     superAdminNote?: string;
 
-    // Excluimos explícitamente lo que no queremos
+    // Excluimos el ID del usuario como pediste
     @Exclude()
     _id: string;
 
